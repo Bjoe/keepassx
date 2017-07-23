@@ -67,7 +67,7 @@ add_gcc_compiler_flags("-fno-common -fstack-protector --param=ssp-buffer-size=4"
 add_gcc_compiler_flags("-Wall -Wextra -Wundef -Wpointer-arith -Wno-long-long")
 add_gcc_compiler_flags("-Wformat=2 -Wmissing-format-attribute")
 add_gcc_compiler_flags("-fvisibility=hidden")
-add_gcc_compiler_cxxflags("-fvisibility-inlines-hidden")
+add_gcc_compiler_cxxflags("-fvisibility-inlines-hidden -fexceptions")
 
 add_gcc_compiler_cxxflags("-fno-exceptions -fno-rtti")
 add_gcc_compiler_cxxflags("-Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual")
@@ -100,7 +100,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-z,relro")
 endif()
 
-add_gcc_compiler_cxxflags("-std=c++11")
+#add_gcc_compiler_cxxflags("-std=c++11")
+set(CMAKE_CXX_STANDARD 14)
 
 if(APPLE)
   add_gcc_compiler_cxxflags("-stdlib=libc++")
@@ -162,6 +163,13 @@ set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS_NONE QT_NO_DEBUG)
 find_package(Gcrypt 1.6.0 REQUIRED)
 
 find_package(ZLIB REQUIRED)
+
+#find_library(HIDAPI hidapi-libusb HINTS /usr/lib/x86_64-linux-gnu)
+set(HIDAPI /usr/lib/x86_64-linux-gnu/libhidapi-libusb.so.0)
+
+#find_library(NITROKEY nitrokey-static HINTS ${CMAKE_BINARY_DIR}/../libnitrokey-Desktop_Qt_5_8_0_GCC_64bit-Debug)
+set(NITROKEY ${CMAKE_BINARY_DIR}/../libnitrokey-Desktop_Qt_5_8_0_GCC_64bit-Debug/libnitrokey-static.a)
+find_PATH(NITROKEY_INCLUDE_DIR NitrokeyManager.h HINTS ${CMAKE_SOURCE_DIR}/../libnitrokey/include)
 
 check_cxx_source_compiles("
   #include <zlib.h>

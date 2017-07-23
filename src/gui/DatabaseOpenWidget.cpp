@@ -15,6 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <QInputDialog>
+
 #include "DatabaseOpenWidget.h"
 #include "ui_DatabaseOpenWidget.h"
 
@@ -26,6 +28,7 @@
 #include "format/KeePass2Reader.h"
 #include "keys/FileKey.h"
 #include "keys/PasswordKey.h"
+#include "keys/NitroKey.h"
 
 DatabaseOpenWidget::DatabaseOpenWidget(QWidget* parent)
     : DialogyWidget(parent)
@@ -45,6 +48,7 @@ DatabaseOpenWidget::DatabaseOpenWidget(QWidget* parent)
     connect(m_ui->buttonTogglePassword, SIGNAL(toggled(bool)),
             m_ui->editPassword, SLOT(setShowPassword(bool)));
     connect(m_ui->buttonBrowseFile, SIGNAL(clicked()), SLOT(browseKeyFile()));
+    connect(m_ui->buttonLoadNitroKeys, SIGNAL(clicked()), SLOT(loadNitrokeySlots()));
 
     connect(m_ui->editPassword, SIGNAL(textChanged(QString)), SLOT(activatePassword()));
     connect(m_ui->comboKeyFile, SIGNAL(editTextChanged(QString)), SLOT(activateKeyFile()));
@@ -124,6 +128,20 @@ CompositeKey DatabaseOpenWidget::databaseKey()
 {
     CompositeKey masterKey;
 
+    if (m_ui->checkNitroKey->isChecked()) {
+        NitroKey nitroKey;
+        if(nitroKey.isValid()) {
+            QVariant slotVariant = m_ui->comboNitroKey->currentData();
+            uint8_t slot = slotVariant.toInt();
+            nitroKey.setPassword(slot);
+            masterKey.addKey(nitroKey);
+        }
+        else {
+            MessageBox::warning(this, tr("Error"), tr("Can't open Nitrokey stick"));
+            return CompositeKey();
+        }
+    }
+
     if (m_ui->checkPassword->isChecked()) {
         masterKey.addKey(PasswordKey(m_ui->editPassword->text()));
     }
@@ -174,5 +192,37 @@ void DatabaseOpenWidget::browseKeyFile()
 
     if (!filename.isEmpty()) {
         m_ui->comboKeyFile->lineEdit()->setText(filename);
+    }
+}
+
+void DatabaseOpenWidget::loadNitrokeySlots()
+{
+    NitroKey nitroKey;
+    if(nitroKey.isValid()) {
+        if(not nitroKey.isUnlocked()) {
+            bool ok;
+            QString pin = QInputDialog::getText(this, tr("Nitrokey"),
+                                                 tr("PIN:"), QLineEdit::Password, "", &ok);
+            if (ok && !pin.isEmpty()) {
+                NitroKey::Status status = nitroKey.unlock(pin);
+                if(status == NitroKey::Status::WRONG_PASSWORD) {
+                    MessageBox::warning(this, tr("Error"), tr("Wrong password"));
+                    return;
+                }
+                QMap<QVariant, QString> keySlots = nitroKey.loadKeys();
+                if(not keySlots.empty()) {
+                    for(QVariant key: keySlots.keys()) {
+                        QString name = keySlots.value(key);
+                        m_ui->comboNitroKey->addItem(name, key);
+                    }
+                }
+            }
+        }
+        else {
+            MessageBox::warning(this, tr("Error"), tr("Nitrokey is not unlock!"));
+        }
+    }
+    else {
+        MessageBox::warning(this, tr("Error"), tr("Can't open Nitrokey stick. Maybe another application is used it."));
     }
 }

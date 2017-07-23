@@ -55,6 +55,7 @@ private Q_SLOTS:
     void activatePassword();
     void activateKeyFile();
     void browseKeyFile();
+    void loadNitrokeySlots();
 
 protected:
     const QScopedPointer<Ui::DatabaseOpenWidget> m_ui;
